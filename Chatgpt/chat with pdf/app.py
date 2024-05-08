@@ -1,7 +1,7 @@
 # import libraries
 from dotenv import load_dotenv
 import streamlit as st
-from PyPDF import PdfReader
+from PyPDF2 import PdfReader
 from langchain.text_splitter import CharacterTextSplitter
 from langchain.embeddings.openai import OpenAIEmbeddings
 from langchain.vectorstores import FAISS
@@ -18,38 +18,61 @@ def main():
     # upload file
     pdf = st.file_uploader("Upload your PDF", type="pdf")
 
-    # extract the text from pdf
+    # extract the text
     if pdf is not None:
         pdf_reader = PdfReader(pdf)
         text = ""
         for page in pdf_reader.pages:
-            text += page.extract_text()
+            page_text = page.extract_text()
+            if page_text:
+                text += page_text
+            else:
+                st.warning("No text found in one or more pages.")
+                return
 
-    # split into chunks
-    text_splitter = CharacterTextSplitter(
-        separator="\n",
-        chunk_size=1000,
-        chunk_overlap=200,
-        length_function=len
-    )
-    chunks = text_splitter.split_text(text)
+        if not text:
+            st.warning("No text could be extracted from the PDF.")
+            return
 
-    # create embeddings
-    embeddings = get_openai_callback()
-    knowledge_base = FAISS.from_texts(chunks, embeddings)
+        # split into chunks
+        text_splitter = CharacterTextSplitter(
+            separator="\n",
+            chunk_size=1000,
+            chunk_overlap=200,
+            length_function=len
+        )
+        chunks = text_splitter.split_text(text)
+        if not chunks:
+            st.warning("Failed to create text chunks from the PDF.")
+            return
 
-    # show user input
-    user_question = st.text_input("Ask a question about your PDF:")
-    if user_question:
-        docs = knowledge_base.similarity_search(user_question)
+        # create embeddings
+        embeddings = OpenAIEmbeddings()
+        if embeddings:
+            try:
+                knowledge_base = FAISS.from_texts(chunks, embeddings)
+            except Exception as e:
+                st.error(f"Error creating knowledge base: {str(e)}")
+                return
+        else:
+            st.error("Failed to load embeddings model.")
+            return
+        knowledge_base = FAISS.from_texts(chunks, embeddings)
 
-        llm = OpenAI()
-        chain = load_qa_chain(llm, chain_type="stuff")
-        with get_openai_callback() as cb:
-            response = chain.run(input_documents=docs, question=user_question)
-            print(cb)
+        # show user input
+        user_question = st.text_input("Ask a question about your PDF:")
+        if user_question:
+            docs = knowledge_base.similarity_search(user_question)
 
-        st.write(response)
+            llm = OpenAI()
+            chain = load_qa_chain(llm, chain_type="stuff")
+            with get_openai_callback() as cb:
+                response = chain.run(input_documents=docs,
+                                     question=user_question)
+                print(cb)
+
+            st.write(response)
+
 
 if __name__ == '__main__':
     main()
