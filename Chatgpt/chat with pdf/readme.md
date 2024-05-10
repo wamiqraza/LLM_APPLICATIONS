@@ -26,8 +26,3 @@ To use the application, run the `app.py` file with the streamlit CLI:
 ```
 streamlit run app.py
 ```
-
-
-## Contributing
-
-For instructional purposes only, this repository is not intended to receive any additional contributions; it is just for educational purposes. It is intended to serve as supplementary content for the YouTube lesson that demonstrates how to construct the project.
