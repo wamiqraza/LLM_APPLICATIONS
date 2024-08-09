@@ -14,6 +14,14 @@ client = anthropic.Anthropic(api_key=api_key)
 
 # Streamlit app
 def main():
+    """
+    Main function for the Claude Text Generator.
+    
+    This function displays a text area where the user can enter a prompt.
+    When the "Generate Text" button is clicked, the function calls the Claude API
+    to generate text based on the provided prompt. The generated text is then displayed.
+    If an error occurs during the API call, an error message is displayed.
+    """
     st.title("Claude Text Generator")
 
     # User input
